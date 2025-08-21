@@ -1,1 +1,377 @@
 
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gerador de Orçamento</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-color: #f3f4f6;
+      --card-color: #ffffff;
+      --border-color: #e5e7eb;
+      --text-primary: #111827;
+      --text-secondary: #6b7280;
+      --accent-color: #2563eb;
+      --accent-color-hover: #1d4ed8;
+      --shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    }
+    * { box-sizing: border-box; }
+    html { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--bg-color); color: var(--text-primary); margin: 0; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+    .page-wrapper { max-width: 1024px; margin: 2rem auto; padding: 2rem; }
+    .header { text-align: center; margin-bottom: 2.5rem; }
+    .header h1 { font-size: 2rem; font-weight: 700; letter-spacing: -0.025em; margin: 0; }
+    .header p { margin-top: 0.5rem; color: var(--text-secondary); font-size: 1rem; }
+
+    .card { background-color: var(--card-color); border: 1px solid var(--border-color); border-radius: 0.75rem; padding: 1.5rem; box-shadow: var(--shadow); margin-bottom: 1.5rem; }
+    .card-header { padding-bottom: 1rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); }
+    .card-title { font-size: 1.125rem; font-weight: 600; margin: 0; }
+
+    .grid-form { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1rem; }
+    .field { display: flex; flex-direction: column; gap: 0.5rem; }
+    .field label { font-size: 0.875rem; font-weight: 500; color: var(--text-secondary); }
+    .field input, .field textarea { width: 100%; padding: 0.625rem 0.875rem; border: 1px solid var(--border-color); border-radius: 0.5rem; font-size: 0.9375rem; transition: border-color 0.2s, box-shadow 0.2s; }
+    .field input:focus, .field textarea:focus { outline: none; border-color: var(--accent-color); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15); }
+    .col-span-12 { grid-column: span 12; }
+    .col-span-6 { grid-column: span 6; }
+    .col-span-4 { grid-column: span 4; }
+    .col-span-3 { grid-column: span 3; }
+
+    #itens-table { width: 100%; border-collapse: collapse; }
+    #itens-table thead th { text-align: left; padding: 0.75rem 1rem; color: var(--text-secondary); font-weight: 500; font-size: 0.75rem; text-transform: uppercase; border-bottom: 1px solid var(--border-color); }
+    #itens-table tbody td { padding: 0.5rem 1rem; border-bottom: 1px solid var(--border-color); }
+    #itens-table tbody tr:last-child td { border-bottom: none; }
+    #itens-table input { border: 1px solid transparent; padding: 0.5rem; border-radius: 0.375rem; width: 100%; }
+    #itens-table input:focus { background-color: #eff6ff; border-color: var(--accent-color); }
+    .text-right { text-align: right; }
+
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.625rem 1.25rem; border-radius: 0.5rem; border: 1px solid transparent; font-weight: 600; font-size: 0.9375rem; cursor: pointer; transition: all 0.2s ease; }
+    .btn svg { width: 1.125em; height: 1.125em; }
+    .btn-primary { background-color: var(--accent-color); color: white; }
+    .btn-primary:hover { background-color: var(--accent-color-hover); transform: translateY(-1px); }
+    .btn-secondary { background-color: var(--card-color); color: var(--text-primary); border-color: var(--border-color); }
+    .btn-secondary:hover { background-color: var(--bg-color); }
+    .btn-ghost { background: transparent; padding: 0.5rem; border-radius: 99px; }
+    .btn-ghost:hover { background: #fee2e2; color: #ef4444; }
+
+    .footer-section { display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; align-items: start; }
+    .totals-card { background-color: #f9fafb; padding: 1.5rem; border-radius: 0.75rem; border: 1px solid var(--border-color); }
+    .total-row { display: flex; justify-content: space-between; align-items: center; padding: 0.625rem 0; }
+    .total-row:not(:last-child) { border-bottom: 1px dashed var(--border-color); }
+    .total-row .label { color: var(--text-secondary); font-size: 0.9375rem; }
+    .total-row .value { font-weight: 500; font-size: 1rem; }
+    .grand-total { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color); }
+    .grand-total .label { font-weight: 600; font-size: 1.125rem; }
+    .grand-total .value { font-weight: 700; font-size: 1.5rem; }
+
+    .final-actions { text-align: center; margin-top: 2.5rem; display: flex; justify-content: center; gap: 1rem; }
+
+    .print-only { display: none; }
+
+    @media print {
+      @page { size: A4; margin: 1cm; }
+      body { background: white; color: black; font-size: 8pt; }
+      .no-print { display: none !important; }
+      .print-only { display: block; }
+      .page-wrapper { max-width: 100%; margin: 0; padding: 0; }
+      .card { border: none; box-shadow: none; padding: 0; margin: 0; }
+      .field input, .field textarea { display: none; }
+      .field .print-value { display: block; white-space: pre-wrap; word-break: break-word; }
+
+      #pdf-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1.5px solid #333; padding-bottom: 8px; margin-bottom: 15px; }
+      #pdf-header .company-info h1 { font-size: 14pt; margin: 0 0 4px; }
+      #pdf-header .company-info div { font-size: 7.5pt; line-height: 1.3; }
+      #pdf-header .order-info { border: 1px solid #aaa; padding: 6px 8px; font-size: 8pt; text-align: right; }
+      #pdf-header .order-info div { margin-bottom: 2px; }
+      #pdf-header .order-info b { font-weight: bold; }
+
+      .pdf-section { border: 1px solid #ccc; padding: 8px; margin-bottom: 10px; page-break-inside: avoid; }
+      .pdf-section-title { font-size: 7.5pt; font-weight: bold; margin: -16px 0 8px 8px; background-color: white; padding: 0 4px; width: fit-content; }
+      .pdf-grid-info { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; font-size: 8pt; }
+      .pdf-grid-info .full { grid-column: 1 / -1; }
+
+      #itens-table { margin-top: 10px; }
+      #itens-table th, #itens-table td { padding: 2px 4px; border: 1px solid #e0e0e0; font-size: 7pt; vertical-align: middle; }
+      #itens-table thead th { background-color: #f5f5f5; text-align: left; }
+      #itens-table .text-right { text-align: right; }
+      #itens-table input { display: none; }
+
+      #pdf-footer { margin-top: 15px; display: flex; justify-content: space-between; align-items: flex-start; page-break-inside: avoid; }
+      #pdf-footer #pdf-obs { flex-grow: 1; font-size: 7.5pt; padding-right: 20px; }
+      #pdf-footer #pdf-totals { width: 220px; font-size: 8pt; }
+      #pdf-footer .total-row { display: flex; justify-content: space-between; padding: 2px 0; }
+      #pdf-footer .grand-total { margin-top: 4px; padding-top: 4px; border-top: 1.5px solid #333; font-size: 10pt; font-weight: bold; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Cabeçalho para impressão -->
+  <div class="print-only">
+    <div id="pdf-header">
+      <div class="company-info">
+        <h1 class="print-value" data-source-id="empresaNome"></h1>
+        <div>CNPJ: <span class="print-value" data-source-id="empresaCnpj"></span></div>
+        <div>Endereço: <span class="print-value" data-source-id="empresaEnd"></span></div>
+        <div>Fone: <span class="print-value" data-source-id="empresaTel"></span></div>
+      </div>
+      <div class="order-info">
+        <div><b>ORÇAMENTO</b></div>
+        <div>Nº: <b><span class="print-value" data-source-id="orcamentoNumero"></span></b></div>
+        <div>Emissão: <b><span class="print-value" data-source-id="orcamentoEmissao"></span></b></div>
+      </div>
+    </div>
+    <div class="pdf-section">
+      <div class="pdf-section-title">DADOS DO CLIENTE</div>
+      <div class="pdf-grid-info">
+        <div class="full"><b>Cliente:</b> <span class="print-value" data-source-id="clienteNome"></span></div>
+        <div><b>CNPJ:</b> <span class="print-value" data-source-id="clienteCnpj"></span></div>
+        <div><b>Telefone:</b> <span class="print-value" data-source-id="clienteTel"></span></div>
+        <div class="full"><b>Endereço:</b> <span class="print-value" data-source-id="clienteEnd"></span></div>
+      </div>
+    </div>
+    <div id="pdf-itens"></div>
+    <div id="pdf-footer">
+      <div id="pdf-obs"><b>Observações:</b><div class="print-value" data-source-id="observacoes"></div></div>
+      <div id="pdf-totals"></div>
+    </div>
+  </div>
+
+  <!-- App -->
+  <div class="page-wrapper no-print">
+    <header class="header">
+      <h1>Gerador de Orçamento</h1>
+      <p>Uma ferramenta elegante para criar seus orçamentos com facilidade.</p>
+    </header>
+
+    <main>
+      <div class="card">
+        <div class="card-header"><h2 class="card-title">Dados da Empresa</h2></div>
+        <div class="grid-form">
+          <div class="field col-span-6"><label for="empresaNome">Nome da Empresa</label><input type="text" id="empresaNome" value="TRICOSTURA INDUSTRIA E COMERCIO LTDA" /></div>
+          <div class="field col-span-6"><label for="empresaCnpj">CNPJ</label><input type="text" id="empresaCnpj" value="21.859.335/0001-30" /></div>
+          <div class="field col-span-12"><label for="empresaEnd">Endereço da Empresa</label><input type="text" id="empresaEnd" value="RUA GERALDO BATISTA DE OLIVEIRA, 451 - DISTRITO INDUSTRIAL - DIVIN" /></div>
+          <div class="field col-span-12"><label for="empresaTel">Telefone</label><input type="text" id="empresaTel" value="37 3216-7550" /></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h2 class="card-title">Dados do Orçamento e Cliente</h2></div>
+        <div class="grid-form">
+          <div class="field col-span-3"><label for="orcamentoNumero">Nº Orçamento</label><input type="text" id="orcamentoNumero" /></div>
+          <div class="field col-span-3"><label for="orcamentoEmissao">Data de Emissão</label><input type="date" id="orcamentoEmissao" /></div>
+          <div class="field col-span-6"></div>
+          <div class="field col-span-6"><label for="clienteNome">Nome/Razão Social do Cliente</label><input type="text" id="clienteNome" /></div>
+          <div class="field col-span-3"><label for="clienteCnpj">CNPJ do Cliente</label><input type="text" id="clienteCnpj" /></div>
+          <div class="field col-span-3"><label for="clienteTel">Telefone</label><input type="text" id="clienteTel" /></div>
+          <div class="field col-span-12"><label for="clienteEnd">Endereço de Entrega</label><input type="text" id="clienteEnd" /></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h2 class="card-title">Itens do Orçamento</h2></div>
+        <table id="itens-table">
+          <thead>
+            <tr>
+              <th style="width: 60%">Descrição do Produto</th>
+              <th class="text-right" style="width: 15%">Qtde</th>
+              <th class="text-right" style="width: 15%">Preço Un. (R$)</th>
+              <th class="text-right" style="width: 10%">Total (R$)</th>
+              <th style="width: 40px"></th>
+            </tr>
+          </thead>
+          <tbody id="itens-tbody"></tbody>
+        </table>
+        <div style="margin-top: 1.5rem">
+          <button class="btn btn-secondary" id="btn-adicionar-item" type="button" title="Adicionar novo item">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+            Adicionar Item
+          </button>
+        </div>
+      </div>
+
+      <div class="footer-section">
+        <div class="card">
+          <div class="card-header"><h2 class="card-title">Observações</h2></div>
+          <div class="field"><textarea id="observacoes" rows="6" placeholder="Condições, prazos, observações gerais..."></textarea></div>
+        </div>
+        <div class="totals-card" id="totals">
+          <div class="total-row"><span class="label">Total Peças</span><span class="value" id="total-pecas">0</span></div>
+          <div class="total-row grand-total"><span class="label">VALOR TOTAL</span><span class="value" id="valor-total-final">R$ 0,00</span></div>
+        </div>
+      </div>
+
+      <div class="final-actions">
+        <button class="btn btn-primary" id="btn-gerar-pdf" type="button" title="Gerar PDF">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0110.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0l.229 2.523a1.125 1.125 0 01-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.32 0z"/></svg>
+          Gerar PDF
+        </button>
+        <button class="btn btn-secondary" id="btn-limpar" type="button" title="Limpar formulário">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0011.667 0l3.181-3.183m-4.991-2.691L7.5 4.5m-4.509 9.348a8.25 8.25 0 0111.667 0l3.181 3.183"/></svg>
+          Limpar Tudo
+        </button>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // ===== Utilitários =====
+    const fMoeda = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format((Number.isFinite(v) ? v : 0));
+
+    // Normaliza números aceitando "." e "," como separadores
+    function pNum(s) {
+      if (s == null) return 0;
+      s = String(s).trim();
+      if (!s) return 0;
+      // Mantém apenas dígitos, ponto, vírgula e sinal
+      s = s.replace(/[^0-9,.-]/g, '');
+      const lastComma = s.lastIndexOf(',');
+      const lastDot = s.lastIndexOf('.');
+      const decimalSep = lastComma > lastDot ? ',' : '.';
+      if (decimalSep === ',') {
+        s = s.replace(/\./g, '').replace(',', '.'); // remove milhares com ponto e troca vírgula por ponto
+      } else {
+        s = s.replace(/,/g, ''); // remove milhares com vírgula
+      }
+      const n = parseFloat(s);
+      return isNaN(n) ? 0 : n;
+    }
+
+    const fData = (d) => (d ? new Date(d + 'T00:00:00').toLocaleDateString('pt-BR') : '');
+
+    // ===== Cálculo =====
+    function calcularTudo() {
+      let totalPecas = 0, valorFinal = 0;
+      document.querySelectorAll('#itens-tbody tr').forEach((tr) => {
+        const qtdeEl = tr.querySelector('.qtde');
+        const precoEl = tr.querySelector('.preco');
+        if (!qtdeEl || !precoEl) return;
+        const qtde = pNum(qtdeEl.value);
+        const preco = pNum(precoEl.value);
+        const totalLinha = qtde * preco;
+        totalPecas += qtde;
+        valorFinal += totalLinha;
+        const totalCell = tr.querySelector('.total-linha');
+        if (totalCell) totalCell.textContent = fMoeda(totalLinha);
+      });
+      document.getElementById('total-pecas').textContent = totalPecas.toLocaleString('pt-BR');
+      document.getElementById('valor-total-final').textContent = fMoeda(valorFinal);
+    }
+
+    // ===== Itens =====
+    function criarLinhaItem(data = {}) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>
+          <input type="text" class="desc" placeholder="Descrição do produto" value="${(data.desc || '').replaceAll('"', '&quot;')}">
+        </td>
+        <td>
+          <input type="text" class="qtde text-right" inputmode="decimal" placeholder="0" value="${data.qtde ?? ''}">
+        </td>
+        <td>
+          <input type="text" class="preco text-right" inputmode="decimal" placeholder="0,00" value="${data.preco ?? ''}">
+        </td>
+        <td class="total-linha text-right">R$ 0,00</td>
+        <td class="text-right">
+          <button class="btn btn-ghost btn-remover" type="button" title="Remover item" aria-label="Remover item">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </td>`;
+      return tr;
+    }
+
+    function adicionarLinha(data = {}) {
+      const tbody = document.getElementById('itens-tbody');
+      const tr = criarLinhaItem(data);
+      tbody.appendChild(tr);
+      calcularTudo();
+      const foco = tr.querySelector('.desc');
+      if (foco) foco.focus();
+      return tr;
+    }
+
+    // ===== Impressão / PDF =====
+    function prepararParaImpressao() {
+      // Garante que os totais estejam corretos
+      calcularTudo();
+
+      // Copia campos para a versão de impressão
+      document.querySelectorAll('.print-value[data-source-id]').forEach((span) => {
+        const input = document.getElementById(span.dataset.sourceId);
+        if (!input) return;
+        span.textContent = input.type === 'date' ? fData(input.value) : input.value;
+      });
+
+      // Clona a tabela de itens e remove inputs/coluna de ações
+      const tabelaOriginal = document.getElementById('itens-table');
+      const tabelaClone = tabelaOriginal.cloneNode(true);
+      tabelaClone.querySelectorAll('input').forEach((input) => {
+        const td = input.parentElement;
+        td.textContent = input.value;
+      });
+      tabelaClone.querySelectorAll('th:last-child, td:last-child').forEach((el) => el.remove());
+
+      const pdfItens = document.getElementById('pdf-itens');
+      pdfItens.innerHTML = '';
+      pdfItens.appendChild(tabelaClone);
+
+      // Totais
+      document.getElementById('pdf-totals').innerHTML = document.getElementById('totals').innerHTML;
+
+      window.print();
+    }
+
+    // ===== Inicialização =====
+    document.addEventListener('DOMContentLoaded', () => {
+      // Data padrão
+      const emissao = document.getElementById('orcamentoEmissao');
+      if (emissao && !emissao.value) emissao.value = new Date().toISOString().split('T')[0];
+
+      // Primeira linha
+      adicionarLinha();
+
+      // Delegação de eventos para inputs (funciona para linhas dinâmicas)
+      const tbody = document.getElementById('itens-tbody');
+      tbody.addEventListener('input', (e) => {
+        if (e.target.classList.contains('qtde') || e.target.classList.contains('preco')) {
+          calcularTudo();
+        }
+      });
+      tbody.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          if (e.target.classList.contains('preco')) adicionarLinha();
+        }
+      });
+      tbody.addEventListener('click', (e) => {
+        const btn = e.target.closest('.btn-remover');
+        if (btn) {
+          btn.closest('tr').remove();
+          calcularTudo();
+        }
+      });
+
+      // Botões
+      document.getElementById('btn-adicionar-item').addEventListener('click', (e) => {
+        e.preventDefault();
+        adicionarLinha();
+      });
+      document.getElementById('btn-gerar-pdf').addEventListener('click', () => prepararParaImpressao());
+      document.getElementById('btn-limpar').addEventListener('click', () => {
+        if (!confirm('Limpar todos os dados do formulário?')) return;
+        document.querySelectorAll('input, textarea').forEach((el) => {
+          const manter = ['empresaNome', 'empresaCnpj', 'empresaEnd', 'empresaTel', 'orcamentoEmissao'];
+          if (!manter.includes(el.id)) el.value = '';
+        });
+        document.getElementById('itens-tbody').innerHTML = '';
+        adicionarLinha();
+        calcularTudo();
+      });
+    });
+  </script>
+</body>
+</html>
+
